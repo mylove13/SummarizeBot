@@ -8,4 +8,4 @@ networkx
 openai
 lxml_html_clean 
 scikit-learn
-treamlit_cookies_manager
+streamlit-cookies-manager
