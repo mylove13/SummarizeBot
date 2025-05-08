@@ -6,15 +6,12 @@ import uuid
 import csv
 from openai import OpenAI
 
-# ✅ API 키 로딩
-def load_api_key(filename="hax_team4_apikey.txt"):
-    if os.path.exists(filename):
-        with open(filename, "r", encoding="utf-8") as f:
-            return f.read().strip()
-    else:
-        raise FileNotFoundError(f"{filename} 파일이 존재하지 않습니다.")
+# ✅ API 키 로딩 (환경 변수 사용)
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    st.error("❌ OpenAI API 키가 설정되지 않았습니다. 환경 변수에서 API 키를 설정하세요.")
+    st.stop()
 
-api_key = load_api_key()
 client = OpenAI(api_key=api_key)
 
 # ✅ 사용자 식별 (쿠키 기반)
