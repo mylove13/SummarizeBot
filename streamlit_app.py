@@ -13,31 +13,19 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
-# ✅ 사용자 식별 (쿠키 기반)
-user_id = st.session_state.get("user_id", "")
-
-# ✅ 사용자 ID가 없으면 쿠키로 설정
-if not user_id:
+# ✅ 사용자 식별 (세션 기반)
+if "user_id" not in st.session_state:
     user_id = str(uuid.uuid4())
     st.session_state.user_id = user_id
-    st.write(
-        f'<script>document.cookie = "user_id={user_id}; path=/"; location.reload();</script>',
-        unsafe_allow_html=True,
-    )
-    st.stop()  # 페이지 재로드로 쿠키 적용
-
-# ✅ 브라우저 쿠키에서 사용자 ID 확인 (쿠키가 설정된 경우)
-if not user_id:
-    user_id = st.session_state.get("user_id")
-
-st.sidebar.info(f"현재 사용자 ID (쿠키): {user_id}")
+else:
+    user_id = st.session_state.user_id
 
 # ✅ 사용자 파일 저장 디렉토리
-USER_FILES_DIR = os.path.join("user_data", user_id)
+USER_FILES_DIR = "user_data"
 os.makedirs(USER_FILES_DIR, exist_ok=True)
 
-scrap_file = os.path.join(USER_FILES_DIR, "scrap.json")
-summary_file = os.path.join(USER_FILES_DIR, "summary.json")
+scrap_file = os.path.join(USER_FILES_DIR, f"scrap_{user_id}.json")
+summary_file = os.path.join(USER_FILES_DIR, f"summary_{user_id}.json")
 
 if os.path.exists(scrap_file):
     with open(scrap_file, "r", encoding="utf-8") as f:
@@ -52,7 +40,6 @@ else:
     summary_map = {}
 
 # ✅ 뉴스 로딩
-@st.cache_data
 def load_articles(filename="news_articles.json"):
     if os.path.exists(filename):
         with open(filename, "r", encoding="utf-8") as f:
@@ -90,8 +77,12 @@ for article in filtered_articles:
     st.subheader(f"📰 {article['title']}")
     st.caption(f"{article['date']} | {article['source']} | 📂 {article['category']}")
 
-    # ✅ 사용자 요약
+    if article.get("keywords"):
+        st.markdown("**🔑 키워드:** " + ", ".join(article["keywords"]))
+
     article_id = article["id"]
+
+    # ✅ 사용자 요약
     if article_id in summary_map:
         st.success(summary_map[article_id])
     else:
