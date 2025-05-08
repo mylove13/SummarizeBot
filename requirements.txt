@@ -1,0 +1,11 @@
+
+streamlit
+feedparser
+newspaper3k
+konlpy
+beautifulsoup4
+numpy
+networkx
+openai
+lxml_html_clean 
+scikit-learn
