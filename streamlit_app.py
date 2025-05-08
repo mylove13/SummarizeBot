@@ -13,12 +13,18 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
-# ✅ 사용자 식별 (세션 기반)
-if "user_id" not in st.session_state:
+# ✅ 사용자 식별 (HTTP 쿠키 기반)
+user_id = st.experimental_get_query_params().get("user_id", [""])[0]
+
+if not user_id:
     user_id = str(uuid.uuid4())
-    st.session_state.user_id = user_id
-else:
-    user_id = st.session_state.user_id
+    st.write(
+        f'<script>document.cookie = "user_id={user_id}; path=/"; location.reload();</script>',
+        unsafe_allow_html=True,
+    )
+    st.stop()  # 페이지 재로드로 쿠키 설정 적용
+
+st.sidebar.info(f"현재 사용자 ID (쿠키): {user_id}")
 
 # ✅ 사용자 파일 저장 디렉토리
 USER_FILES_DIR = os.path.join("user_data", user_id)
@@ -40,6 +46,7 @@ else:
     summary_map = {}
 
 # ✅ 뉴스 로딩
+@st.cache_data
 def load_articles(filename="news_articles.json"):
     if os.path.exists(filename):
         with open(filename, "r", encoding="utf-8") as f:
