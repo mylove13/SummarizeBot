@@ -13,16 +13,22 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
-# ✅ 사용자 식별 (HTTP 쿠키 기반)
-user_id = st.experimental_get_query_params().get("user_id", [""])[0]
+# ✅ 사용자 식별 (쿠키 기반)
+user_id = st.session_state.get("user_id", "")
 
+# ✅ 사용자 ID가 없으면 쿠키로 설정
 if not user_id:
     user_id = str(uuid.uuid4())
+    st.session_state.user_id = user_id
     st.write(
         f'<script>document.cookie = "user_id={user_id}; path=/"; location.reload();</script>',
         unsafe_allow_html=True,
     )
-    st.stop()  # 페이지 재로드로 쿠키 설정 적용
+    st.stop()  # 페이지 재로드로 쿠키 적용
+
+# ✅ 브라우저 쿠키에서 사용자 ID 확인 (쿠키가 설정된 경우)
+if not user_id:
+    user_id = st.session_state.get("user_id")
 
 st.sidebar.info(f"현재 사용자 ID (쿠키): {user_id}")
 
