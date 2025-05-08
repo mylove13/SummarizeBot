@@ -6,9 +6,14 @@ import json
 from bs4 import BeautifulSoup
 from datetime import datetime
 import networkx as nx
-from konlpy.tag import Hannanum  # ✅ JVM이 필요하지 않은 형태소 분석기
 from sklearn.feature_extraction.text import CountVectorizer
 import numpy as np
+
+# ✅ Mecab 형태소 분석기 (JVM 필요 없음)
+from konlpy.tag import Mecab
+
+# ✅ Mecab 형태소 분석기 초기화
+mecab = Mecab()
 
 # ✅ 언론사별 카테고리별 RSS URL
 RSS_FEEDS = {
@@ -36,7 +41,6 @@ RSS_FEEDS = {
 
 articles = []
 collected_urls = set()
-han = Hannanum()  # ✅ JVM이 필요하지 않은 형태소 분석기
 
 def extract_chosun_encoded(entry):
     raw_html = entry.get("content", [{}])[0].get("value", "")
@@ -45,7 +49,7 @@ def extract_chosun_encoded(entry):
 
 def textrank_keywords(text, top_n=5):
     """TextRank 알고리즘으로 키워드 추출"""
-    words = [word for word in han.nouns(text)]  # ✅ 형태소 분석 (명사만)
+    words = [word for word in mecab.nouns(text)]  # ✅ JVM 필요 없이 명사만 추출
     if not words:
         return []
 
