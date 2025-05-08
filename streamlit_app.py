@@ -14,6 +14,19 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
+# ✅ 뉴스 수집 자동 실행
+def run_news_collector():
+    try:
+        subprocess.run(["python", "scripts/news_collector.py"], check=True)
+        st.success("✅ 최신 뉴스 수집 완료!")
+    except subprocess.CalledProcessError as e:
+        st.error(f"❌ 뉴스 수집 중 오류 발생: {str(e)}")
+
+# ✅ Streamlit 앱 실행 시 자동으로 뉴스 수집 실행
+st.sidebar.title("🔄 뉴스 수집")
+if st.sidebar.button("🔄 최신 뉴스 수집"):
+    run_news_collector()
+
 # ✅ 사용자 식별 (쿠키 기반)
 if "user_id" not in st.session_state:
     user_id = str(uuid.uuid4())
@@ -48,6 +61,9 @@ def load_articles(filename="news_articles.json"):
     else:
         st.error(f"❌ 뉴스 파일 {filename}이 존재하지 않습니다.")
         return []
+
+# ✅ 앱 실행 시 자동으로 뉴스 수집
+run_news_collector()
 
 articles = load_articles()
 
