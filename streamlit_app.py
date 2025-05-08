@@ -4,6 +4,7 @@ import json
 import uuid
 import csv
 from openai import OpenAI
+from streamlit_cookies_manager import CookiesManager
 
 # ✅ API 키 로딩 (환경 변수 사용)
 api_key = os.getenv("OPENAI_API_KEY")
@@ -14,18 +15,22 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 # ✅ 사용자 식별 (쿠키 기반)
-if "user_id" not in st.session_state:
-    user_id = str(uuid.uuid4())
-    st.session_state.user_id = user_id
+cookies = CookiesManager()
+cookies.sync()
+
+if "user_id" in cookies:
+    user_id = cookies["user_id"]
 else:
-    user_id = st.session_state.user_id
+    user_id = str(uuid.uuid4())
+    cookies["user_id"] = user_id
+    cookies.sync()
 
 # ✅ 사용자 파일 저장 디렉토리
-USER_FILES_DIR = "user_data"
+USER_FILES_DIR = os.path.join("user_data", user_id)
 os.makedirs(USER_FILES_DIR, exist_ok=True)
 
-scrap_file = os.path.join(USER_FILES_DIR, f"scrap_{user_id}.json")
-summary_file = os.path.join(USER_FILES_DIR, f"summary_{user_id}.json")
+scrap_file = os.path.join(USER_FILES_DIR, "scrap.json")
+summary_file = os.path.join(USER_FILES_DIR, "summary.json")
 
 if os.path.exists(scrap_file):
     with open(scrap_file, "r", encoding="utf-8") as f:
@@ -77,12 +82,8 @@ for article in filtered_articles:
     st.subheader(f"📰 {article['title']}")
     st.caption(f"{article['date']} | {article['source']} | 📂 {article['category']}")
 
-    if article.get("keywords"):
-        st.markdown("**🔑 키워드:** " + ", ".join(article["keywords"]))
-
-    article_id = article["id"]
-
     # ✅ 사용자 요약
+    article_id = article["id"]
     if article_id in summary_map:
         st.success(summary_map[article_id])
     else:
