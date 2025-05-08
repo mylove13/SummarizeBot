@@ -8,3 +8,5 @@ networkx
 openai
 lxml_html_clean 
 scikit-learn
+mecab-python3
+mecab-ko-dic
