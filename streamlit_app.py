@@ -4,7 +4,6 @@ import json
 import uuid
 import csv
 from openai import OpenAI
-from streamlit_cookies_manager import CookiesManager
 
 # ✅ API 키 로딩 (환경 변수 사용)
 api_key = os.getenv("OPENAI_API_KEY")
@@ -14,16 +13,12 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
-# ✅ 사용자 식별 (쿠키 기반)
-cookies = CookiesManager()
-cookies.sync()
-
-if "user_id" in cookies:
-    user_id = cookies["user_id"]
-else:
+# ✅ 사용자 식별 (세션 기반)
+if "user_id" not in st.session_state:
     user_id = str(uuid.uuid4())
-    cookies["user_id"] = user_id
-    cookies.sync()
+    st.session_state.user_id = user_id
+else:
+    user_id = st.session_state.user_id
 
 # ✅ 사용자 파일 저장 디렉토리
 USER_FILES_DIR = os.path.join("user_data", user_id)
@@ -133,3 +128,5 @@ st.sidebar.download_button(
     file_name=f"summary_info_{user_id}.csv",
     mime="text/csv"
 )
+
+st.sidebar.info(f"현재 사용자 ID: {user_id}")
