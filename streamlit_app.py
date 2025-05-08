@@ -141,5 +141,3 @@ st.sidebar.download_button(
     file_name=f"summary_info_{user_id}.csv",
     mime="text/csv"
 )
-
-st.sidebar.info(f"현재 사용자 ID: {user_id}")
