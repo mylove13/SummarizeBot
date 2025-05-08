@@ -1,8 +1,5 @@
-
-!pip install konlpy
-!apt-get install -y fonts-nanum
-!pip install networkx
-
+# ✅ 뉴스 수집 코드 - scripts/news_collect.py
+import os
 import feedparser
 import newspaper
 import uuid
