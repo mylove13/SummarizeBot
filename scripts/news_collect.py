@@ -1,4 +1,3 @@
-# ✅ 뉴스 수집 코드 - scripts/news_collect.py
 import os
 import feedparser
 import newspaper
@@ -7,7 +6,7 @@ import json
 from bs4 import BeautifulSoup
 from datetime import datetime
 import networkx as nx
-from konlpy.tag import Okt
+from konlpy.tag import Hannanum  # ✅ JVM이 필요하지 않은 형태소 분석기
 from sklearn.feature_extraction.text import CountVectorizer
 import numpy as np
 
@@ -37,7 +36,7 @@ RSS_FEEDS = {
 
 articles = []
 collected_urls = set()
-okt = Okt()  # ✅ 형태소 분석기 (TextRank에서 사용)
+han = Hannanum()  # ✅ JVM이 필요하지 않은 형태소 분석기
 
 def extract_chosun_encoded(entry):
     raw_html = entry.get("content", [{}])[0].get("value", "")
@@ -46,7 +45,7 @@ def extract_chosun_encoded(entry):
 
 def textrank_keywords(text, top_n=5):
     """TextRank 알고리즘으로 키워드 추출"""
-    words = [word for word, pos in okt.pos(text) if pos in ['Noun', 'Verb', 'Adjective']]
+    words = [word for word in han.nouns(text)]  # ✅ 형태소 분석 (명사만)
     if not words:
         return []
 
