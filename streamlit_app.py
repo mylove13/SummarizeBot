@@ -17,18 +17,20 @@ client = OpenAI(api_key=api_key)
 # ✅ 뉴스 수집 자동 실행
 def run_news_collector():
     try:
-        # ✅ 경로 명확히 지정
+        # ✅ 패키지 강제 설치 (Streamlit Cloud에서 설치 확인)
+        subprocess.run(["pip", "install", "-r", "requirements.txt"], check=True)
+
+        # ✅ 뉴스 수집 스크립트 실행
         script_path = os.path.join(os.path.dirname(__file__), "scripts", "news_collect.py")
         result = subprocess.run(["python", script_path], check=True, text=True, capture_output=True)
         st.success("✅ 최신 뉴스 수집 완료!")
-        st.text(result.stdout)  # ✅ 수집 결과 출력
+        st.text(result.stdout)
     except subprocess.CalledProcessError as e:
         st.error(f"❌ 뉴스 수집 중 오류 발생: {e.stderr}")
         st.stop()
     except FileNotFoundError:
         st.error("❌ 뉴스 수집 스크립트가 존재하지 않습니다. 경로를 확인하세요.")
         st.stop()
-
 # ✅ Streamlit 앱 실행 시 자동으로 뉴스 수집 실행
 st.sidebar.title("🔄 뉴스 수집")
 if st.sidebar.button("🔄 최신 뉴스 수집"):
