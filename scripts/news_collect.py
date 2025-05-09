@@ -38,16 +38,6 @@ RSS_FEEDS = {
     "스포츠": "https://www.hani.co.kr/rss/sports/",
     "과학": "https://www.hani.co.kr/rss/science/"    
   },
-  "오마이뉴스": {
-    "사회": "https://rss.ohmynews.com/rss/society.xml",
-    "문화": "https://rss.ohmynews.com/rss/culture.xml",
-    "정치": "https://rss.ohmynews.com/rss/politics.xml",
-    "경제": "https://rss.ohmynews.com/rss/economy.xml",
-    "민족·국제": "https://rss.ohmynews.com/rss/international.xml",
-    "교육": "https://rss.ohmynews.com/rss/education.xml",
-    "미디어": "https://rss.ohmynews.com/rss/media.xml",
-    "여행": "https://rss.ohmynews.com/rss/travel.xml"
-  },
   "연합뉴스": {
     "정치": "https://www.yna.co.kr/rss/politics.xml",
     "사회": "https://www.yna.co.kr/rss/society.xml",
