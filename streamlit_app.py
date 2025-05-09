@@ -5,6 +5,7 @@ import uuid
 from openai import OpenAI
 import pandas as pd  # 데이터프레임 사용을 위해 import
 
+
 # ✅ API 키 로딩 (환경 변수 사용)
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
@@ -15,19 +16,14 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
-# ✅ 사용자 식별 (HTTP 쿠키 기반)
-user_id = st.session_state.get("user_id", None)
-
-
-if not user_id:
+# ✅ 사용자 식별 (세션 기반으로 변경)
+if "user_id" not in st.session_state:
     user_id = str(uuid.uuid4())
     st.session_state.user_id = user_id
-    st.write(
-        f'<script>document.cookie = "user_id={user_id}; path=/";</script>',
-        unsafe_allow_html=True,
-    )
 
-st.sidebar.info(f"현재 사용자 ID (쿠키): {user_id}")
+user_id = st.session_state.user_id # 세션에서 user_id 가져오기
+
+st.sidebar.info(f"현재 사용자 ID (세션): {user_id}")  # 세션이라고 명시
 
 
 # ✅ 사용자 파일 저장 디렉토리
@@ -89,7 +85,7 @@ articles = load_articles()
 
 # ✅ 필터 설정
 st.sidebar.title("🔍 필터 설정")
-if articles: # articles가 비어있지 않은 경우에만 필터 생성.
+if articles:  # articles가 비어있지 않은 경우에만 필터 생성.
     all_categories = list(set([a["category"] for a in articles]))
     all_sources = list(set([a["source"] for a in articles]))
     all_keywords = list(set([kw for a in articles for kw in a.get("keywords", [])]))
@@ -112,7 +108,8 @@ if articles: # articles가 비어있지 않은 경우에만 필터 생성.
         and (search_text.lower() in (a["title"] + a["content"]).lower())
     ]
 else:
-    filtered_articles = [] # articles가 비어있으면, 필터링된 결과도 빈 리스트.
+    filtered_articles = []  # articles가 비어있으면, 필터링된 결과도 빈 리스트.
+
 
 # ✅ UI
 st.title("📢 AI 뉴스 요약 & 스크랩 (사용자별 저장)")
@@ -162,9 +159,10 @@ else:
                     json.dump(scrap_list, f, ensure_ascii=False)
                 st.success("뉴스를 스크랩했습니다.")
 
+
 # ✅ 사이드바에 스크랩된 뉴스 표시
 st.sidebar.title("📌 스크랩된 뉴스")
-if scrap_list: # 스크랩된 뉴스가 있을 경우에만 표시
+if scrap_list:  # 스크랩된 뉴스가 있을 경우에만 표시
     for article in articles:
         if article["id"] in scrap_list:
             st.sidebar.write(
@@ -174,7 +172,7 @@ else:
     st.sidebar.write("스크랩된 뉴스가 없습니다.")
 
 # ✅ 사용자별 스크랩 다운로드 (CSV)
-st.sidebar.title("⬇️ 다운로드") # 다운로드 섹션 제목 추가
+st.sidebar.title("⬇️ 다운로드")  # 다운로드 섹션 제목 추가
 if scrap_list:
     scrap_info = [
         {"title": a["title"], "date": a["date"], "source": a["source"]}
@@ -193,9 +191,13 @@ if scrap_list:
 # ✅ 사용자별 요약 다운로드 (CSV)
 if summary_map:
     summary_info = [
-        {"title": a["title"], "date": a["date"], "summary": summary_map.get(a["id"], "요약 없음")}
+        {
+            "title": a["title"],
+            "date": a["date"],
+            "summary": summary_map.get(a["id"], "요약 없음"),
+        }
         for a in articles
-        if a["id"] in summary_map # summary_map에 있는 것만 처리.
+        if a["id"] in summary_map  # summary_map에 있는 것만 처리.
     ]
 
     summary_df = pd.DataFrame(summary_info)  # pandas DataFrame으로 변환
