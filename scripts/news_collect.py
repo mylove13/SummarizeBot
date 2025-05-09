@@ -16,26 +16,29 @@ logging.basicConfig(filename="scripts/news_collect.log", level=logging.ERROR, fo
 LAST_RUN_FILE = os.path.join("scripts", "last_news_collect.txt")
 os.makedirs("scripts", exist_ok=True)
 
-# ✅ RSS 피드 로드 (JSON 파일에서)
-RSS_FEEDS_FILE = os.path.join(os.path.dirname(__file__), "rss_feeds.json")
-if not os.path.exists(RSS_FEEDS_FILE):
-    logging.error("❌ rss_feeds.json 파일이 존재하지 않습니다. 기본 파일을 생성합니다.")
-    default_feeds = {
-        "조선일보": {
-            "정치": "https://www.chosun.com/arc/outboundfeeds/rss/category/politics/?outputType=xml",
-            "경제": "https://www.chosun.com/arc/outboundfeeds/rss/category/economy/?outputType=xml"
-        },
-        "한겨레": {
-            "정치": "https://www.hani.co.kr/rss/politics/",
-            "경제": "https://www.hani.co.kr/rss/economy/"
-        }
+# ✅ RSS 피드 정의 (rss_feeds.json 파일 대신)
+RSS_FEEDS = {
+    "조선일보": {
+        "정치": "https://www.chosun.com/arc/outboundfeeds/rss/category/politics/?outputType=xml",
+        "사회": "https://www.chosun.com/arc/outboundfeeds/rss/category/national/?outputType=xml",
+        "경제": "https://www.chosun.com/arc/outboundfeeds/rss/category/economy/?outputType=xml"
+    },
+    "한겨레": {
+        "정치": "https://www.hani.co.kr/rss/politics/",
+        "사회": "https://www.hani.co.kr/rss/society/",
+        "경제": "https://www.hani.co.kr/rss/economy/"
+    },
+    "오마이뉴스": {
+        "정치": "https://rss.ohmynews.com/rss/politics.xml",
+        "사회": "https://rss.ohmynews.com/rss/society.xml",
+        "경제": "https://rss.ohmynews.com/rss/economy.xml"
+    },
+    "연합뉴스": {
+        "정치": "https://www.yna.co.kr/rss/politics.xml",
+        "사회": "https://www.yna.co.kr/rss/society.xml",
+        "경제": "https://www.yna.co.kr/rss/economy.xml"
     }
-    with open(RSS_FEEDS_FILE, "w", encoding="utf-8") as f:
-        json.dump(default_feeds, f, ensure_ascii=False, indent=4)
-    print("✅ 기본 rss_feeds.json 파일이 생성되었습니다.")
-
-with open(RSS_FEEDS_FILE, "r", encoding="utf-8") as f:
-    RSS_FEEDS = json.load(f)
+}
 
 articles = []
 collected_urls = set()
