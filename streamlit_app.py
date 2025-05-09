@@ -47,8 +47,10 @@ user_data = load_user_data()
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# ✅ 로그인 후 자동 뉴스 수집 (하루 1회 - 전체 사용자 공통)
-LAST_RUN_FILE = "last_news_collect.txt"
+# ✅ 뉴스 수집 기록 파일 (전체 사용자 공통)
+LAST_RUN_FILE = os.path.join("scripts", "last_news_collect.txt")
+os.makedirs("scripts", exist_ok=True)
+
 def can_run_today():
     if os.path.exists(LAST_RUN_FILE):
         with open(LAST_RUN_FILE, "r") as f:
@@ -67,17 +69,18 @@ def get_last_run_date():
             return f.read().strip()
     return "기록 없음"
 
-# ✅ 로그인 후 자동 뉴스 수집
+# ✅ 전체 사용자 대상 자동 뉴스 수집 (하루 1회)
 def auto_collect_news():
     if not can_run_today():
-        return  # 수집 이미 완료된 경우 조용히 종료
+        st.info(f"✅ 오늘 이미 뉴스가 수집되었습니다. ({get_last_run_date()})")
+        return
 
     try:
-        subprocess.run(["python", "scripts/news_collect.py"], check=True, capture_output=True)
+        subprocess.run(["python", "scripts/news_collect.py"], check=True)
         update_last_run()
         st.success("✅ 오늘 뉴스 수집 및 저장 성공!")
     except subprocess.CalledProcessError as e:
-        st.error(f"❌ 뉴스 기사 수집 실패: {e.stderr.decode('utf-8')}")
+        st.error(f"❌ 뉴스 기사 수집 실패: {e}")
     except FileNotFoundError:
         st.error("❌ scripts/news_collect.py 파일을 찾을 수 없습니다. 파일 경로를 확인해주세요.")
 
@@ -90,13 +93,12 @@ def show_main_page():
     user_id = st.session_state.user_id
     username = st.session_state.get("username", "Unknown User")
 
-    # ✅ 로그인 시 자동 뉴스 수집 실행
+    # ✅ 로그인 시 자동 뉴스 수집 실행 (전체 사용자 대상)
     if "news_collected" not in st.session_state:
-        auto_collect_news()  # 이미 수집된 경우 경고 없이 무시
+        auto_collect_news()  # 전체 사용자 대상 하루 1회 수집
         st.session_state.news_collected = True
 
     last_run_date = get_last_run_date()
-
     st.sidebar.info(f"현재 로그인된 사용자: {username}")
     st.sidebar.info(f"🕒 마지막 뉴스 수집 날짜: {last_run_date}")
     show_logout_button()
@@ -119,6 +121,35 @@ def run_app():
         show_auth_form()  # 로그인/회원 가입 폼 표시
     else:
         show_main_page()  # 메인 페이지 표시
+
+# ✅ 회원가입 또는 로그인 UI (메인 페이지로 이동)
+def show_auth_form():
+    mode = st.selectbox("선택", ["로그인", "회원가입"])
+
+    if mode == "회원가입":
+        st.subheader("회원가입")
+        username = st.text_input("사용자명")
+        password = st.text_input("비밀번호", type="password")
+        if st.button("회원가입"):
+            if username in user_data:
+                st.error("❌ 이미 존재하는 사용자명입니다.")
+            else:
+                user_data[username] = {"password": hash_password(password), "user_id": str(uuid.uuid4())}
+                save_user_data(user_data)
+                st.success("✅ 회원가입 성공! 로그인하세요.")
+    elif mode == "로그인":
+        st.subheader("로그인")
+        username = st.text_input("사용자명")
+        password = st.text_input("비밀번호", type="password")
+        if st.button("로그인"):
+            if username in user_data and user_data[username]["password"] == hash_password(password):
+                st.session_state.user_id = user_data[username]["user_id"]
+                st.session_state.username = username
+                st.success(f"✅ 로그인 성공! 환영합니다, {username}!")
+                st.session_state.logged_in = True
+                st.rerun()
+            else:
+                st.error("❌ 사용자명 또는 비밀번호가 잘못되었습니다.")
 
 if __name__ == "__main__":
     run_app()
