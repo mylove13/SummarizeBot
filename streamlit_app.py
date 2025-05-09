@@ -5,6 +5,7 @@ import uuid
 import csv
 import hashlib
 from openai import OpenAI
+import pandas as pd # pandas 추가
 
 # ✅ API 키 로딩 (환경 변수 사용)
 api_key = os.getenv("OPENAI_API_KEY")
@@ -91,7 +92,7 @@ def show_main_page():
     user_id = st.session_state.user_id
     username = st.session_state.get("username", "Unknown User")
 
-    st.sidebar.info(f"현재 로그인된 사용자 ID: {user_id}")  # 사용자 ID만 표시하도록 변경
+    st.sidebar.info(f"현재 로그인된 사용자: {username}")  # 사용자 이름 표시
     show_logout_button() # 로그아웃 버튼 사이드바에 표시
 
     # ✅ 사용자 파일 저장 디렉토리
@@ -225,7 +226,7 @@ def show_main_page():
     st.sidebar.title("⬇️ 다운로드")
     if scrap_list:
         scrap_info = [{"title": a["title"], "date": a["date"], "source": a["source"]} for a in articles if a["id"] in scrap_list]
-        scrap_df = pd.DataFrame(scrap_info)
+        scrap_df = pd.DataFrame(scrap_info) # pandas DataFrame으로 변환
         scrap_csv = scrap_df.to_csv(index=False)
         st.sidebar.download_button(
             label="📥 스크랩된 뉴스 다운로드 (CSV)",
@@ -237,7 +238,7 @@ def show_main_page():
     # ✅ 사용자별 요약 다운로드 (CSV)
     if summary_map:
         summary_info = [{"title": a["title"], "date": a["date"], "summary": summary_map.get(a["id"], "요약 없음")} for a in articles if a["id"] in summary_map]
-        summary_df = pd.DataFrame(summary_info)
+        summary_df = pd.DataFrame(summary_info) # pandas DataFrame으로 변환
         summary_csv = summary_df.to_csv(index=False)
         st.sidebar.download_button(
             label="📥 요약 다운로드 (CSV)",
