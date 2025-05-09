@@ -8,21 +8,31 @@ from datetime import datetime
 from collections import Counter
 import re
 import logging
-import traceback
 
 # ✅ 로깅 설정
-LOG_FILE = "scripts/news_collect.log"
-logging.basicConfig(filename=LOG_FILE, level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(filename="scripts/news_collect.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # ✅ 뉴스 수집 기록 파일 (전체 사용자 공통)
 LAST_RUN_FILE = os.path.join("scripts", "last_news_collect.txt")
 os.makedirs("scripts", exist_ok=True)
 
 # ✅ RSS 피드 로드 (JSON 파일에서)
-RSS_FEEDS_FILE = "rss_feeds.json"
+RSS_FEEDS_FILE = os.path.join(os.path.dirname(__file__), "rss_feeds.json")
 if not os.path.exists(RSS_FEEDS_FILE):
-    logging.error("❌ rss_feeds.json 파일이 존재하지 않습니다. 파일을 확인하세요.")
-    raise FileNotFoundError("❌ rss_feeds.json 파일이 존재하지 않습니다. 파일을 확인하세요.")
+    logging.error("❌ rss_feeds.json 파일이 존재하지 않습니다. 기본 파일을 생성합니다.")
+    default_feeds = {
+        "조선일보": {
+            "정치": "https://www.chosun.com/arc/outboundfeeds/rss/category/politics/?outputType=xml",
+            "경제": "https://www.chosun.com/arc/outboundfeeds/rss/category/economy/?outputType=xml"
+        },
+        "한겨레": {
+            "정치": "https://www.hani.co.kr/rss/politics/",
+            "경제": "https://www.hani.co.kr/rss/economy/"
+        }
+    }
+    with open(RSS_FEEDS_FILE, "w", encoding="utf-8") as f:
+        json.dump(default_feeds, f, ensure_ascii=False, indent=4)
+    print("✅ 기본 rss_feeds.json 파일이 생성되었습니다.")
 
 with open(RSS_FEEDS_FILE, "r", encoding="utf-8") as f:
     RSS_FEEDS = json.load(f)
@@ -60,65 +70,51 @@ def collect_news():
         print("⚠️ 오늘은 이미 뉴스 수집이 완료되었습니다.")
         return []
 
-    print("✅ 뉴스 수집 시작...")
     for source, categories in RSS_FEEDS.items():
         for category_name, rss_url in categories.items():
-            try:
-                feed = feedparser.parse(rss_url)
-                count = 0
+            feed = feedparser.parse(rss_url)
+            count = 0
 
-                for entry in feed.entries:
-                    if count >= 10:
-                        break
-                    try:
-                        url = entry.link
-                        if url in collected_urls:
-                            continue
+            for entry in feed.entries:
+                if count >= 10:
+                    break
+                try:
+                    url = entry.link
+                    if url in collected_urls:
+                        continue
 
-                        title = entry.title
-                        content = entry.get("summary", "") or ""
+                    title = entry.title
+                    content = entry.get("summary", "") or ""
 
-                        date = entry.published[:10] if "published" in entry else datetime.today().strftime("%Y-%m-%d")
-                        keywords = extract_keywords(title + " " + content)
+                    date = entry.published[:10] if "published" in entry else datetime.today().strftime("%Y-%m-%d")
+                    keywords = extract_keywords(title + " " + content)
 
-                        articles.append({
-                            "id": str(uuid.uuid4()),
-                            "title": title,
-                            "content": content,
-                            "source": source,
-                            "category": category_name,
-                            "date": date,
-                            "keywords": keywords
-                        })
+                    articles.append({
+                        "id": str(uuid.uuid4()),
+                        "title": title,
+                        "content": content,
+                        "source": source,
+                        "category": category_name,
+                        "date": date,
+                        "keywords": keywords
+                    })
 
-                        collected_urls.add(url)
-                        count += 1
-                    except Exception as e:
-                        logging.error(f"[{source} - {category_name}] 개별 뉴스 수집 실패: {str(e)}")
-                        logging.error(traceback.format_exc())
-                        print(f"❌ [{source} - {category_name}] 개별 뉴스 수집 실패: {str(e)}")
-
-            except Exception as e:
-                logging.error(f"❌ [{source} - {category_name}] RSS 피드 로드 실패: {str(e)}")
-                logging.error(traceback.format_exc())
-                print(f"❌ [{source} - {category_name}] RSS 피드 로드 실패: {str(e)}")
+                    collected_urls.add(url)
+                    count += 1
+                except Exception as e:
+                    logging.error(f"[{source} - {category_name}] 수집 실패: {e}")
 
     update_last_run()
     return articles
 
 # ✅ 메인 함수 (자동 실행 지원)
 if __name__ == "__main__":
-    try:
-        articles = collect_news()
-        news_file = "news_articles.json"  # scripts 폴더의 한 단계 위에 저장
+    articles = collect_news()
+    news_file = "news_articles.json"  # scripts 폴더의 한 단계 위에 저장
 
-        if articles:
-            with open(news_file, "w", encoding="utf-8") as f:
-                json.dump(articles, f, ensure_ascii=False, indent=2)
-            print(f"✅ 총 {len(articles)}개 뉴스 수집 완료.")
-        else:
-            print("⚠️ 수집된 기사가 없습니다.")
-    except Exception as e:
-        logging.error(f"❌ 전체 뉴스 수집 실패: {str(e)}")
-        logging.error(traceback.format_exc())
-        print(f"❌ 전체 뉴스 수집 실패: {str(e)}")
+    if articles:
+        with open(news_file, "w", encoding="utf-8") as f:
+            json.dump(articles, f, ensure_ascii=False, indent=2)
+        print(f"✅ 총 {len(articles)}개 뉴스 수집 완료.")
+    else:
+        print("⚠️ 수집된 기사가 없습니다.")
