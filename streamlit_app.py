@@ -5,7 +5,8 @@ import uuid
 import csv
 import hashlib
 from openai import OpenAI
-import pandas as pd  # pandas 추가
+import pandas as pd
+import subprocess  # subprocess 추가
 
 # ✅ API 키 로딩 (환경 변수 사용)
 api_key = os.getenv("OPENAI_API_KEY")
@@ -36,7 +37,7 @@ def save_user_data(data):
         with open(USER_DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
     except Exception as e:
-        st.error(f"❌ 사용자 데이터를 저장하는 동안 오류가 발생했습니다: e")
+        st.error(f"❌ 사용자 데이터를 저장하는 동안 오류가 발생했습니다: {e}")
 
 # ✅ 사용자 데이터 로드
 user_data = load_user_data()
@@ -139,13 +140,24 @@ def show_main_page():
                 st.error(f"⚠️ {filename} 파일이 손상되었습니다. 파일을 확인하거나 다시 생성해주세요.")
                 return []
             except Exception as e:
-                st.error(f"⚠️ {filename} 파일을 읽는 동안 예외가 발생했습니다: e")
+                st.error(f"⚠️ {filename} 파일을 읽는 동안 예외가 발생했습니다: {e}")
                 return []
         else:
             st.error(f"❌ 뉴스 파일 {filename}이 존재하지 않습니다.")
             return []
 
-    articles = load_articles()
+    # ✅ news_articles.json 파일 생성 (scripts/news_collect.py 실행)
+    try:
+        subprocess.run(["python", "scripts/news_collect.py"], check=True, capture_output=True)
+        st.success("✅ 뉴스 기사 수집 및 저장 성공!")
+    except subprocess.CalledProcessError as e:
+        st.error(f"❌ 뉴스 기사 수집 실패: {e.stderr.decode('utf-8')}")
+        articles = []  # 오류 발생 시 빈 리스트 할당
+    except FileNotFoundError:
+        st.error("❌ scripts/news_collect.py 파일을 찾을 수 없습니다. 파일 경로를 확인해주세요.")
+        articles = [] # 오류 발생 시 빈 리스트 할당
+
+    articles = load_articles() # 여기서 기사 로딩
 
     # ✅ 필터 설정
     st.sidebar.title("🔍 필터 설정")
@@ -162,10 +174,10 @@ def show_main_page():
         # ✅ 필터 적용
         filtered_articles = [
             a for a in articles if
-            (a["category"] in selected_categories if selected_categories else True)
-            and (a["source"] in selected_sources if selected_sources else True)
-            and (selected_keyword == "(선택 안 함)" or selected_keyword in a.get("keywords", []))
-            and (search_text.lower() in (a["title"] + a["content"]).lower())
+            (a["category"] in selected_categories if selected_categories else True) and
+            (a["source"] in selected_sources if selected_sources else True) and
+            (selected_keyword == "(선택 안 함)" or selected_keyword in a.get("keywords", [])) and
+            (search_text.lower() in (a["title"] + a["content"]).lower())
         ]
     else:
         filtered_articles = []
@@ -193,12 +205,7 @@ def show_main_page():
                     try:
                         response = client.chat.completions.create(
                             model="gpt-4o",
-                            messages=[
-                                {
-                                    "role": "user",
-                                    "content": f"다음 뉴스 기사를 3문장으로 요약해줘:\n\n{article['content']}",
-                                }
-                            ]
+                            messages=[{"role": "user", "content": f"다음 뉴스 기사를 3문장으로 요약해줘:\n\n{article['content']}"}]
                         )
                         summary = response.choices[0].message.content.strip()
                         summary_map[article_id] = summary
@@ -236,40 +243,27 @@ def show_main_page():
     # ✅ 사용자별 스크랩 다운로드 (CSV)
     st.sidebar.title("⬇️ 다운로드")
     if scrap_list:
-        scrap_info = [
-            {"title": a["title"], "date": a["date"], "source": a["source"]}
-            for a in articles
-            if a["id"] in scrap_list
-        ]
-        scrap_df = pd.DataFrame(scrap_info)  # pandas DataFrame으로 변환
+        scrap_info = [{"title": a["title"], "date": a["date"], "source": a["source"]} for a in articles if a["id"] in scrap_list]
+        scrap_df = pd.DataFrame(scrap_info) # pandas DataFrame으로 변환
         scrap_csv = scrap_df.to_csv(index=False)
         st.sidebar.download_button(
             label="📥 스크랩된 뉴스 다운로드 (CSV)",
             data=scrap_csv,
-            file_name=f"scrap_info_{user_id}.csv",  # 파일명에 user_id 사용
-            mime="text/csv",
+            file_name=f"scrap_info_{user_id}.csv", # 파일명에 user_id 사용
+            mime="text/csv"
         )
 
     # ✅ 사용자별 요약 다운로드 (CSV)
     if summary_map:
-        summary_info = [
-            {
-                "title": a["title"],
-                "date": a["date"],
-                "summary": summary_map.get(a["id"], "요약 없음"),
-            }
-            for a in articles
-            if a["id"] in summary_map
-        ]
-        summary_df = pd.DataFrame(summary_info)  # pandas DataFrame으로 변환
+        summary_info = [{"title": a["title"], "date": a["date"], "summary": summary_map.get(a["id"], "요약 없음")} for a in articles if a["id"] in summary_map]
+        summary_df = pd.DataFrame(summary_info) # pandas DataFrame으로 변환
         summary_csv = summary_df.to_csv(index=False)
         st.sidebar.download_button(
             label="📥 요약 다운로드 (CSV)",
             data=summary_csv,
-            file_name=f"summary_info_{user_id}.csv",  # 파일명에 user_id 사용
-            mime="text/csv",
+            file_name=f"summary_info_{user_id}.csv", # 파일명에 user_id 사용
+            mime="text/csv"
         )
-
 
 # ✅ 앱 실행
 def run_app():
@@ -280,7 +274,6 @@ def run_app():
         show_auth_form()  # 로그인/회원 가입 폼 표시
     else:
         show_main_page()  # 메인 페이지 표시
-
 
 if __name__ == "__main__":
     run_app()
