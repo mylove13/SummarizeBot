@@ -215,7 +215,7 @@ def show_main_page():
     # ✅ 사이드바에 스크랩된 뉴스 표시
     st.sidebar.title("📌 스크랩된 뉴스")
     if scrap_list:
-        for article in articles:ㅁ
+        for article in articles:
             if article["id"] in scrap_list:
                 st.sidebar.write(f"✅ {article['title']} ({article['date']} | {article['source']})")
     else:
