@@ -51,7 +51,11 @@ if os.path.exists(summary_file):
         summary_map = json.load(f)
 else:
     summary_map = {}
-    
+
+# ✅ 스크랩 및 요약이 세션에 저장되도록 설정
+st.session_state.scrap_list = scrap_list
+st.session_state.summary_map = summary_map
+
 # ✅ 뉴스 로딩
 @st.cache_data
 def load_articles(filename="news_articles.json"):
