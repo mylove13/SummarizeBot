@@ -129,6 +129,11 @@ def extract_keywords(text, top_n=5):
     ranked_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
     return [word for word, _ in ranked_words[:top_n]]
 
+def extract_chosun_encoded(entry):
+    raw_html = entry.get("content", [{}])[0].get("value", "")
+    soup = BeautifulSoup(raw_html, "html.parser")
+    return soup.get_text(separator="\n").strip()
+
 # ✅ 뉴스 수집 및 분석 함수
 def collect_news():
     if not can_run_today():
@@ -148,8 +153,22 @@ def collect_news():
                     if url in collected_urls:
                         continue
 
-                    title = entry.title
-                    content = entry.get("summary", "") or ""
+                    if source == "조선일보":
+                        title = entry.title
+                        content = extract_chosun_encoded(entry)
+                        if not content:
+                            continue
+                    else:
+                        article = newspaper.Article(url, language='ko')
+                        try:
+                            article.download()
+                            article.parse()
+                            title = article.title
+                            content = article.text
+                        except Exception as e:
+                            logging.error(f"[{source} - {category_name}] newspaper 다운로드/파싱 실패: {e} - {url}")
+                            title = entry.title
+                            content = entry.get("summary", "") or ""
 
                     date = entry.published[:10] if "published" in entry else datetime.today().strftime("%Y-%m-%d")
                     keywords = extract_keywords(title + " " + content)
