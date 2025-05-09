@@ -1,0 +1,30 @@
+{
+"조선일보": {
+"정치": "[https://www.chosun.com/arc/outboundfeeds/rss/category/politics/?outputType=xml](https://www.chosun.com/arc/outboundfeeds/rss/category/politics/?outputType=xml)",
+"사회": "[https://www.chosun.com/arc/outboundfeeds/rss/category/national/?outputType=xml](https://www.chosun.com/arc/outboundfeeds/rss/category/national/?outputType=xml)",
+"경제": "[https://www.chosun.com/arc/outboundfeeds/rss/category/economy/?outputType=xml](https://www.chosun.com/arc/outboundfeeds/rss/category/economy/?outputType=xml)",
+"국제": "[https://www.chosun.com/arc/outboundfeeds/rss/category/international/?outputType=xml](https://www.chosun.com/arc/outboundfeeds/rss/category/international/?outputType=xml)",
+"IT": "[https://www.chosun.com/arc/outboundfeeds/rss/category/digital/?outputType=xml](https://www.chosun.com/arc/outboundfeeds/rss/category/digital/?outputType=xml)"
+},
+"한겨레": {
+"정치": "[https://www.hani.co.kr/rss/politics/](https://www.hani.co.kr/rss/politics/)",
+"사회": "[https://www.hani.co.kr/rss/society/](https://www.hani.co.kr/rss/society/)",
+"경제": "[https://www.hani.co.kr/rss/economy/](https://www.hani.co.kr/rss/economy/)",
+"문화": "[https://www.hani.co.kr/rss/culture/](https://www.hani.co.kr/rss/culture/)",
+"IT": "[https://www.hani.co.kr/rss/it/](https://www.hani.co.kr/rss/it/)"
+},
+"오마이뉴스": {
+"정치": "[https://rss.ohmynews.com/rss/politics.xml](https://rss.ohmynews.com/rss/politics.xml)",
+"사회": "[https://rss.ohmynews.com/rss/society.xml](https://rss.ohmynews.com/rss/society.xml)",
+"경제": "[https://rss.ohmynews.com/rss/economy.xml](https://rss.ohmynews.com/rss/economy.xml)",
+"문화": "[https://rss.ohmynews.com/rss/culture.xml](https://rss.ohmynews.com/rss/culture.xml)",
+"스포츠": "[https://rss.ohmynews.com/rss/sports.xml](https://rss.ohmynews.com/rss/sports.xml)"
+},
+"연합뉴스": {
+"정치": "[https://www.yna.co.kr/rss/politics.xml](https://www.yna.co.kr/rss/politics.xml)",
+"사회": "[https://www.yna.co.kr/rss/society.xml](https://www.yna.co.kr/rss/society.xml)",
+"경제": "[https://www.yna.co.kr/rss/economy.xml](https://www.yna.co.kr/rss/economy.xml)",
+"국제": "[https://www.yna.co.kr/rss/world.xml](https://www.yna.co.kr/rss/world.xml)",
+"스포츠": "[https://www.yna.co.kr/rss/sports.xml](https://www.yna.co.kr/rss/sports.xml)"
+}
+}
