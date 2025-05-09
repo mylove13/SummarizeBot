@@ -14,18 +14,31 @@ if not api_key:
 client = OpenAI(api_key=api_key)
 
 # ✅ 사용자 식별 (세션 기반)
-if "user_id" not in st.session_state:
+#if "user_id" not in st.session_state:
+#    user_id = str(uuid.uuid4())
+#    st.session_state.user_id = user_id
+# else:
+#    user_id = st.session_state.user_id
+
+# ✅ 사용자 식별 (HTTP 쿠키 기반)
+user_id = st.session_state.get("user_id", None)
+
+if not user_id:
     user_id = str(uuid.uuid4())
     st.session_state.user_id = user_id
-else:
-    user_id = st.session_state.user_id
+    st.write(
+        f'<script>document.cookie = "user_id={user_id}; path=/";</script>',
+        unsafe_allow_html=True,
+    )
+
+st.sidebar.info(f"현재 사용자 ID (쿠키): {user_id}")
 
 # ✅ 사용자 파일 저장 디렉토리
-USER_FILES_DIR = "user_data"
+USER_FILES_DIR = os.path.join("user_data", user_id)
 os.makedirs(USER_FILES_DIR, exist_ok=True)
 
-scrap_file = os.path.join(USER_FILES_DIR, f"scrap_{user_id}.json")
-summary_file = os.path.join(USER_FILES_DIR, f"summary_{user_id}.json")
+scrap_file = os.path.join(USER_FILES_DIR, "scrap.json")
+summary_file = os.path.join(USER_FILES_DIR, "summary.json")
 
 if os.path.exists(scrap_file):
     with open(scrap_file, "r", encoding="utf-8") as f:
@@ -38,8 +51,9 @@ if os.path.exists(summary_file):
         summary_map = json.load(f)
 else:
     summary_map = {}
-
+    
 # ✅ 뉴스 로딩
+@st.cache_data
 def load_articles(filename="news_articles.json"):
     if os.path.exists(filename):
         with open(filename, "r", encoding="utf-8") as f:
