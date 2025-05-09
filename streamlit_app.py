@@ -124,8 +124,8 @@ def show_main_page():
     show_logout_button()  # 로그아웃 버튼 사이드바에 표시
 
     # ✅ 뉴스 업데이트 버튼 (사이드바)
-    if st.sidebar.button("📰 뉴스 업데이트"):
-        update_news()
+    #if st.sidebar.button("📰 뉴스 업데이트"):
+    #    update_news()
 
     # ✅ 사용자 파일 저장 디렉토리
     USER_FILES_DIR = os.path.join("user_data", user_id)
