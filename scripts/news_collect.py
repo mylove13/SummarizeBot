@@ -6,16 +6,14 @@ import json
 from bs4 import BeautifulSoup
 from datetime import datetime
 from collections import Counter
+import re
 import streamlit as st
 import logging
-from konlpy.tag import Hannanum  # ✅ JVM 필요 없는 Hannanum 사용
 
 # ✅ 로깅 설정
 logging.basicConfig(filename="news_collect.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# ✅ Hannanum 형태소 분석기 초기화
-hannanum = Hannanum()
-st.info("✅ Hannanum 형태소 분석기 사용 중 (JVM 불필요)")
+st.info("✅ 간단한 한국어 키워드 추출 (Konlpy 불필요)")
 
 # ✅ 언론사별 카테고리별 RSS URL
 RSS_FEEDS = {
@@ -50,9 +48,10 @@ def extract_chosun_encoded(entry):
     soup = BeautifulSoup(raw_html, "html.parser")
     return soup.get_text(separator="\n").strip()
 
-def textrank_keywords(text, top_n=5):
-    """TextRank 알고리즘으로 키워드 추출 (Hannanum 사용)"""
-    words = hannanum.nouns(text)  # ✅ Hannanum 명사 추출
+def simple_keyword_extraction(text, top_n=5):
+    """간단한 한국어 키워드 추출 (정규표현식 기반)"""
+    # 한글 단어만 추출 (명사 추출 유사)
+    words = re.findall(r'\b[가-힣]{2,}\b', text)
     word_counts = Counter(words)
     ranked_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
     return [word for word, _ in ranked_words[:top_n]]
@@ -87,7 +86,7 @@ def collect_news():
                         continue
 
                     date = entry.published[:10] if "published" in entry else datetime.today().strftime("%Y-%m-%d")
-                    keywords = textrank_keywords(title + " " + content)
+                    keywords = simple_keyword_extraction(title + " " + content)
 
                     articles.append({
                         "id": str(uuid.uuid4()),
