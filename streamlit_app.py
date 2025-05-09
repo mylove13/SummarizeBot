@@ -49,6 +49,7 @@ def hash_password(password):
 
 # ✅ 뉴스 수집 기록 파일 (전체 사용자 공통)
 LAST_RUN_FILE = os.path.join("scripts", "last_news_collect.txt")
+LOG_FILE = os.path.join("scripts", "news_collect.log")
 os.makedirs("scripts", exist_ok=True)
 
 def can_run_today():
@@ -76,13 +77,33 @@ def auto_collect_news():
         return
 
     try:
-        subprocess.run(["python", "scripts/news_collect.py"], check=True)
+        result = subprocess.run(
+            ["python", "scripts/news_collect.py"],
+            check=True,
+            capture_output=True,
+            text=True
+        )
         update_last_run()
         st.success("✅ 오늘 뉴스 수집 및 저장 성공!")
     except subprocess.CalledProcessError as e:
-        st.error(f"❌ 뉴스 기사 수집 실패: {e}")
+        st.error(f"❌ 뉴스 기사 수집 실패: {e.stderr}")
     except FileNotFoundError:
         st.error("❌ scripts/news_collect.py 파일을 찾을 수 없습니다. 파일 경로를 확인해주세요.")
+
+# ✅ 로그 파일 확인
+def show_logs():
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE, "r", encoding="utf-8") as f:
+            logs = f.read()
+        st.text_area("📄 뉴스 수집 로그", logs, height=400)
+        st.sidebar.download_button(
+            label="📥 로그 파일 다운로드",
+            data=logs,
+            file_name="news_collect.log",
+            mime="text/plain"
+        )
+    else:
+        st.warning("❌ 로그 파일이 존재하지 않습니다.")
 
 # ✅ 로그인된 사용자 확인 및 메인 페이지 표시
 def show_main_page():
@@ -102,6 +123,11 @@ def show_main_page():
     st.sidebar.info(f"현재 로그인된 사용자: {username}")
     st.sidebar.info(f"🕒 마지막 뉴스 수집 날짜: {last_run_date}")
     show_logout_button()
+
+    st.title("📢 AI 뉴스 요약 & 스크랩")
+    st.sidebar.title("📝 로그 확인")
+    if st.sidebar.button("로그 파일 보기"):
+        show_logs()
 
 # ✅ 로그아웃 기능 (사이드바로 이동)
 def show_logout_button():
