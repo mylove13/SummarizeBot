@@ -10,7 +10,7 @@ import re
 import logging
 
 # ✅ 로깅 설정
-logging.basicConfig(filename="news_collect.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(filename="scripts/news_collect.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # ✅ 뉴스 수집 기록 파일 (전체 사용자 공통)
 LAST_RUN_FILE = os.path.join("scripts", "last_news_collect.txt")
@@ -28,9 +28,9 @@ articles = []
 collected_urls = set()
 
 # ✅ 정지어 목록 (필터링할 단어들)
-STOPWORDS = set(["하다", "되다", "있다", "없다", "되다", "이다", "그리고", "하지만", "또한", "즉", "않다"])
+STOPWORDS = set(["하다", "되다", "있다", "없다", "이다", "그리고", "하지만", "또한", "즉", "않다"])
 
-# ✅ 수집 실행 제어 (하루 1회 실행)
+# ✅ 수집 실행 제어 (하루 1회 실행 - 전체 사용자 대상)
 def can_run_today():
     if os.path.exists(LAST_RUN_FILE):
         with open(LAST_RUN_FILE, "r") as f:
