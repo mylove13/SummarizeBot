@@ -7,57 +7,56 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from collections import Counter
 import re
-import streamlit as st
 import logging
 
 # ✅ 로깅 설정
 logging.basicConfig(filename="news_collect.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
-st.info("✅ 간단한 한국어 키워드 추출 (Konlpy 불필요)")
+# ✅ 뉴스 수집 기록 파일 (전체 사용자 공통)
+LAST_RUN_FILE = os.path.join("scripts", "last_news_collect.txt")
+os.makedirs("scripts", exist_ok=True)
 
-# ✅ 언론사별 카테고리별 RSS URL
-RSS_FEEDS = {
-    "조선일보": {
-        "정치": "https://www.chosun.com/arc/outboundfeeds/rss/category/politics/?outputType=xml",
-        "사회": "https://www.chosun.com/arc/outboundfeeds/rss/category/national/?outputType=xml",
-        "경제": "https://www.chosun.com/arc/outboundfeeds/rss/category/economy/?outputType=xml"
-    },
-    "한겨레": {
-        "정치": "https://www.hani.co.kr/rss/politics/",
-        "사회": "https://www.hani.co.kr/rss/society/",
-        "경제": "https://www.hani.co.kr/rss/economy/"
-    },
-    "오마이뉴스": {
-        "정치": "https://rss.ohmynews.com/rss/politics.xml",
-        "사회": "https://rss.ohmynews.com/rss/society.xml",
-        "경제": "https://rss.ohmynews.com/rss/economy.xml"
-    },
-    "연합뉴스": {
-        "정치": "https://www.yna.co.kr/rss/politics.xml",
-        "사회": "https://www.yna.co.kr/rss/society.xml",
-        "경제": "https://www.yna.co.kr/rss/economy.xml"
-    }
-}
+# ✅ RSS 피드 로드 (JSON 파일에서)
+RSS_FEEDS_FILE = "rss_feeds.json"
+if not os.path.exists(RSS_FEEDS_FILE):
+    raise FileNotFoundError("❌ rss_feeds.json 파일이 존재하지 않습니다. 파일을 확인하세요.")
+
+with open(RSS_FEEDS_FILE, "r", encoding="utf-8") as f:
+    RSS_FEEDS = json.load(f)
 
 articles = []
 collected_urls = set()
 
-def extract_chosun_encoded(entry):
-    """조선일보 RSS 인코딩 문제 해결 함수"""
-    raw_html = entry.get("content", [{}])[0].get("value", "")
-    soup = BeautifulSoup(raw_html, "html.parser")
-    return soup.get_text(separator="\n").strip()
+# ✅ 정지어 목록 (필터링할 단어들)
+STOPWORDS = set(["하다", "되다", "있다", "없다", "되다", "이다", "그리고", "하지만", "또한", "즉", "않다"])
 
-def simple_keyword_extraction(text, top_n=5):
-    """간단한 한국어 키워드 추출 (정규표현식 기반)"""
-    # 한글 단어만 추출 (명사 추출 유사)
+# ✅ 수집 실행 제어 (하루 1회 실행)
+def can_run_today():
+    if os.path.exists(LAST_RUN_FILE):
+        with open(LAST_RUN_FILE, "r") as f:
+            last_run = f.read().strip()
+            if last_run == datetime.today().strftime("%Y-%m-%d"):
+                return False
+    return True
+
+def update_last_run():
+    with open(LAST_RUN_FILE, "w") as f:
+        f.write(datetime.today().strftime("%Y-%m-%d"))
+
+# ✅ 키워드 추출 함수 (정규표현식 기반 + 정지어 필터)
+def extract_keywords(text, top_n=5):
     words = re.findall(r'\b[가-힣]{2,}\b', text)
-    word_counts = Counter(words)
+    filtered_words = [word for word in words if word not in STOPWORDS]
+    word_counts = Counter(filtered_words)
     ranked_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
     return [word for word, _ in ranked_words[:top_n]]
 
-# ✅ 뉴스 기사 수집 및 분석
+# ✅ 뉴스 수집 및 분석 함수
 def collect_news():
+    if not can_run_today():
+        print("⚠️ 오늘은 이미 뉴스 수집이 완료되었습니다.")
+        return []
+
     for source, categories in RSS_FEEDS.items():
         for category_name, rss_url in categories.items():
             feed = feedparser.parse(rss_url)
@@ -71,22 +70,11 @@ def collect_news():
                     if url in collected_urls:
                         continue
 
-                    # ✅ 언론사별 본문 추출
-                    if source == "조선일보":
-                        title = entry.title
-                        content = extract_chosun_encoded(entry)
-                    else:
-                        article = newspaper.Article(url, language='ko')
-                        article.download()
-                        article.parse()
-                        title = article.title
-                        content = article.text
-
-                    if not content:
-                        continue
+                    title = entry.title
+                    content = entry.get("summary", "") or ""
 
                     date = entry.published[:10] if "published" in entry else datetime.today().strftime("%Y-%m-%d")
-                    keywords = simple_keyword_extraction(title + " " + content)
+                    keywords = extract_keywords(title + " " + content)
 
                     articles.append({
                         "id": str(uuid.uuid4()),
@@ -102,26 +90,18 @@ def collect_news():
                     count += 1
                 except Exception as e:
                     logging.error(f"[{source} - {category_name}] 수집 실패: {e}")
-                    st.error(f"❌ [{source} - {category_name}] 수집 실패: {e}")
 
+    update_last_run()
     return articles
 
-# ✅ 메인 함수 (Streamlit 앱)
-def main():
-    st.title("뉴스 기사 수집 및 저장 앱")
-    st.write("RSS 피드에서 뉴스 기사를 수집하고 JSON 파일로 저장합니다.")
-
-    if st.button("뉴스 기사 수집 시작"):
-        with st.spinner("뉴스 기사 수집 중..."):
-            articles = collect_news()  # 뉴스 기사 수집 함수 호출
-        
-        if articles:  # articles가 비어있지 않은 경우에만 저장
-            # ✅ 데이터 저장
-            with open("news_articles.json", "w", encoding="utf-8") as f:
-                json.dump(articles, f, ensure_ascii=False, indent=2)
-            st.success(f"✅ 총 {len(articles)}개 기사 저장 완료 (키워드 포함)")
-        else:
-            st.warning("⚠️ 수집된 기사가 없습니다.")
-
+# ✅ 메인 함수 (자동 실행 지원)
 if __name__ == "__main__":
-    main()
+    articles = collect_news()
+    news_file = "news_articles.json"  # scripts 폴더의 한 단계 위에 저장
+
+    if articles:
+        with open(news_file, "w", encoding="utf-8") as f:
+            json.dump(articles, f, ensure_ascii=False, indent=2)
+        print(f"✅ 총 {len(articles)}개 뉴스 수집 완료.")
+    else:
+        print("⚠️ 수집된 기사가 없습니다.")
