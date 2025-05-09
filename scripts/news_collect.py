@@ -8,19 +8,14 @@ from datetime import datetime
 from collections import Counter
 import streamlit as st
 import logging
+from konlpy.tag import Hannanum  # ✅ JVM 필요 없는 Hannanum 사용
 
 # ✅ 로깅 설정
 logging.basicConfig(filename="news_collect.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# ✅ 형태소 분석기 초기화 (Mecab → Okt 대체)
-try:
-    from konlpy.tag import Mecab
-    mecab = Mecab(dicpath='/usr/local/lib/mecab/dic/mecab-ko-dic')
-    st.info("✅ Mecab 형태소 분석기 사용 중")
-except:
-    from konlpy.tag import Okt
-    mecab = Okt()  # Mecab 사용 불가 시 Okt 사용
-    st.warning("❌ Mecab 사용 불가, Okt로 대체합니다.")
+# ✅ Hannanum 형태소 분석기 초기화
+hannanum = Hannanum()
+st.info("✅ Hannanum 형태소 분석기 사용 중 (JVM 불필요)")
 
 # ✅ 언론사별 카테고리별 RSS URL
 RSS_FEEDS = {
@@ -56,12 +51,8 @@ def extract_chosun_encoded(entry):
     return soup.get_text(separator="\n").strip()
 
 def textrank_keywords(text, top_n=5):
-    """TextRank 알고리즘으로 키워드 추출 (Mecab → Okt 대체)"""
-    if isinstance(mecab, Okt):
-        words = mecab.nouns(text)  # Okt 사용 시
-    else:
-        words = mecab.nouns(text)  # Mecab 사용 시
-
+    """TextRank 알고리즘으로 키워드 추출 (Hannanum 사용)"""
+    words = hannanum.nouns(text)  # ✅ Hannanum 명사 추출
     word_counts = Counter(words)
     ranked_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
     return [word for word, _ in ranked_words[:top_n]]
@@ -96,8 +87,6 @@ def collect_news():
                         continue
 
                     date = entry.published[:10] if "published" in entry else datetime.today().strftime("%Y-%m-%d")
-
-                    # ✅ 키워드 추출 (Mecab → Okt 사용)
                     keywords = textrank_keywords(title + " " + content)
 
                     articles.append({
