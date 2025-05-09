@@ -40,24 +40,25 @@ os.makedirs(USER_FILES_DIR, exist_ok=True)
 scrap_file = os.path.join(USER_FILES_DIR, "scrap.json")
 summary_file = os.path.join(USER_FILES_DIR, "summary.json")
 
-# ✅ 스크랩 및 요약 로드 (세션 상태가 없을 때 파일에서 로드)
-if "scrap_list" not in st.session_state:
-    if os.path.exists(scrap_file):
-        with open(scrap_file, "r", encoding="utf-8") as f:
-            st.session_state.scrap_list = json.load(f)
-    else:
-        st.session_state.scrap_list = []
+# ✅ 스크랩 및 요약 로드 (파일에서 항상 로드)
+if os.path.exists(scrap_file):
+    with open(scrap_file, "r", encoding="utf-8") as f:
+        scrap_list = json.load(f)
+else:
+    scrap_list = []
 
-if "summary_map" not in st.session_state:
-    if os.path.exists(summary_file):
-        with open(summary_file, "r", encoding="utf-8") as f:
-            st.session_state.summary_map = json.load(f)
-    else:
-        st.session_state.summary_map = {}
+if os.path.exists(summary_file):
+    with open(summary_file, "r", encoding="utf-8") as f:
+        summary_map = json.load(f)
+else:
+    summary_map = {}
+
+# ✅ 세션 상태에 저장 (페이지 새로고침 시 유지)
+st.session_state.scrap_list = scrap_list
+st.session_state.summary_map = summary_map
 
 scrap_list = st.session_state.scrap_list
 summary_map = st.session_state.summary_map
-
 
 # ✅ 뉴스 로딩
 @st.cache_data
