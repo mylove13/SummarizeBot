@@ -4,16 +4,23 @@ import newspaper
 import uuid
 import json
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
-import networkx as nx
-from sklearn.feature_extraction.text import CountVectorizer
-import numpy as np
-from konlpy.tag import Mecab
+from datetime import datetime
 from collections import Counter
-import streamlit as st  # streamlit 추가
+import streamlit as st
+import logging
 
-# ✅ Mecab 형태소 분석기 초기화 (클래스 인스턴스 생성)
-mecab = Mecab()
+# ✅ 로깅 설정
+logging.basicConfig(filename="news_collect.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
+
+# ✅ 형태소 분석기 초기화 (Mecab → Okt 대체)
+try:
+    from konlpy.tag import Mecab
+    mecab = Mecab(dicpath='/usr/local/lib/mecab/dic/mecab-ko-dic')
+    st.info("✅ Mecab 형태소 분석기 사용 중")
+except:
+    from konlpy.tag import Okt
+    mecab = Okt()  # Mecab 사용 불가 시 Okt 사용
+    st.warning("❌ Mecab 사용 불가, Okt로 대체합니다.")
 
 # ✅ 언론사별 카테고리별 RSS URL
 RSS_FEEDS = {
@@ -49,20 +56,15 @@ def extract_chosun_encoded(entry):
     return soup.get_text(separator="\n").strip()
 
 def textrank_keywords(text, top_n=5):
-    """TextRank 알고리즘으로 키워드 추출 (Streamlit 호환)"""
-    # 1. 형태소 분석 (Mecab 사용)
-    words = mecab.nouns(text)  # Mecab 객체의 nouns 메서드 사용
-    if not words:
-        return []
+    """TextRank 알고리즘으로 키워드 추출 (Mecab → Okt 대체)"""
+    if isinstance(mecab, Okt):
+        words = mecab.nouns(text)  # Okt 사용 시
+    else:
+        words = mecab.nouns(text)  # Mecab 사용 시
 
-    # 2. 단어 빈도수 계산
     word_counts = Counter(words)
-
-    # 3. 단어 중요도 계산 (빈도수 기반)
     ranked_words = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)
-
-    # 4. 상위 키워드 추출
-    return [word for word, count in ranked_words[:top_n]]
+    return [word for word, _ in ranked_words[:top_n]]
 
 # ✅ 뉴스 기사 수집 및 분석
 def collect_news():
@@ -83,8 +85,6 @@ def collect_news():
                     if source == "조선일보":
                         title = entry.title
                         content = extract_chosun_encoded(entry)
-                        if not content:
-                            continue
                     else:
                         article = newspaper.Article(url, language='ko')
                         article.download()
@@ -92,9 +92,12 @@ def collect_news():
                         title = article.title
                         content = article.text
 
+                    if not content:
+                        continue
+
                     date = entry.published[:10] if "published" in entry else datetime.today().strftime("%Y-%m-%d")
 
-                    # ✅ 키워드 추출 (TextRank)
+                    # ✅ 키워드 추출 (Mecab → Okt 사용)
                     keywords = textrank_keywords(title + " " + content)
 
                     articles.append({
@@ -110,7 +113,9 @@ def collect_news():
                     collected_urls.add(url)
                     count += 1
                 except Exception as e:
-                    print(f"[{source} - {category_name}] 수집 실패: {e}")
+                    logging.error(f"[{source} - {category_name}] 수집 실패: {e}")
+                    st.error(f"❌ [{source} - {category_name}] 수집 실패: {e}")
+
     return articles
 
 # ✅ 메인 함수 (Streamlit 앱)
@@ -126,7 +131,7 @@ def main():
             # ✅ 데이터 저장
             with open("news_articles.json", "w", encoding="utf-8") as f:
                 json.dump(articles, f, ensure_ascii=False, indent=2)
-            st.success(f"✅ 총 {len(articles)}개 기사 저장 완료 (TextRank 키워드 포함)")
+            st.success(f"✅ 총 {len(articles)}개 기사 저장 완료 (키워드 포함)")
         else:
             st.warning("⚠️ 수집된 기사가 없습니다.")
 
